@@ -8,12 +8,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ##Introducción
-Dado que no tengo muy claro que puedo sacar con el dataset elegido, he decidio comprobar en el dataset en el que estan los mismos estudiantes como influye los factores familiares a la nota de los estudiantes, en un principio habia elegido hacerlo con los dos dataset, pero debido a la limitacion de hojas para la entrega he decidido utilizar solo un dataset.
+Dado que no tengo muy claro que puedo sacar con el dataset elegido, he decidido juntar los estudiantes que estudian matemáticas y portugués, y comprobar como influyen los factores socio-familiares en la nota final del alumno.
 ```
 ```
 
 ## Carga de los datos
-Debemos descargar los datos desde una url, para tener mas estructurado el proyecto creare un directorio de datos donde guardare los dataset descargados. Una ves descardo los archivos generare los data frame para los estudiantes de Matematicas y Portugues, luego generare uno mezclando ambos y cogiendo solo los estudiantes repetidos. Despues creare las varibles que necesite.
+Debemos descargar los datos desde una url, para tener mas estructurado el proyecto creare un directorio de datos donde guardare los dataset descargados. Una vez descargado los archivos generare los data frame para los estudiantes de Matemáticas y Portugués, luego generare uno mezclando ambos y cogiendo solo los estudiantes repetidos. Después creare las variables que necesite.
 ```{r message=FALSE}
 
 #limpio el espacio de trabajo
@@ -80,7 +80,7 @@ Ahora vamos a ver la los datos, vamos a ver de que tipo son las variables de nue
 library(knitr)
 
 df <- head(studentFam, 15)
-kable(df, caption = "Estudiantes de matematicas y portugues")
+kable(df, caption = "Estudiantes de matemáticas y portugués")
 
 
 #muestro detalles de los datos con str(), summary(), lapply() (sin usar)
@@ -107,7 +107,7 @@ studentFam.M <- studentFam[ which( studentFam$sex == "M" ),  ]
 
 
 ##Análisis Exploratorio
-Ahora vamos a intentar relacionar las variables para ver si alguna influye sobre la nota final, solo estoy usando la variable x(matematicas para las pruebas)
+Ahora vamos a intentar relacionar las variables para ver si alguna influye sobre la nota final, solo estoy usando la variable x(matemáticas para las pruebas)
 ```{r message=FALSE}
 
 #vemos mas detalles de los datos que nos interesan, podemos ver como se relacionan 2 variables
@@ -133,7 +133,6 @@ ggtitle ("Relación gráfica entre aprobar o no matemáticas y el apoyo familiar
 theme(plot.title=element_text(vjust = +1.5, size = 10))
 
 #modifico el dataframe para poder ver correlaciones entre los datos
-
 studentFamCorrelation <- studentFam
 studentFamCorrelation$school <- as.numeric(studentFamCorrelation$school)
 studentFamCorrelation$sex <- as.numeric(studentFamCorrelation$sex)
@@ -148,7 +147,7 @@ studentFamCorrelation$internet <- as.numeric(studentFamCorrelation$internet)
 
 corStudentFamCorrelation <- cor(studentFamCorrelation)
 
-
+#correlación entre variables
 require(corrplot)
 corrplot(corStudentFamCorrelation)
 corrplot(corStudentFamCorrelation, method="shade", shade.col=NA, tl.srt=45,
@@ -156,7 +155,7 @@ corrplot(corStudentFamCorrelation, method="shade", shade.col=NA, tl.srt=45,
 ```
 
 
-##Conclusion
-Despues de ver las graficas de correlacion parace que no hay muchar realacion entre las variables de la familia y la nota final, de todas formas es muy posible que alguien que se dedique a la estadistica pueda interpretar mucho  mejor que yo estos datos.
+##Conclusión
+Después de ver las gráficas de correlación parece que no hay mucha relación entre las variables de la familia y la nota final, de todas formas es muy posible que alguien que se dedique a la estadística pueda interpretar mucho  mejor que yo estos datos.
 ```{r message=FALSE}
 
