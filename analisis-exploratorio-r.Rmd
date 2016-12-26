@@ -1,0 +1,162 @@
+---
+title: "Práctica Análisis Exploratorio R"
+output: html_document
+---   
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Introducción
+Dado que no tengo muy claro que puedo sacar con el dataset elegido, he decidio comprobar en el dataset en el que estan los mismos estudiantes como influye los factores familiares a la nota de los estudiantes, en un principio habia elegido hacerlo con los dos dataset, pero debido a la limitacion de hojas para la entrega he decidido utilizar solo un dataset.
+```
+```
+
+## Carga de los datos
+Debemos descargar los datos desde una url, para tener mas estructurado el proyecto creare un directorio de datos donde guardare los dataset descargados. Una ves descardo los archivos generare los data frame para los estudiantes de Matematicas y Portugues, luego generare uno mezclando ambos y cogiendo solo los estudiantes repetidos. Despues creare las varibles que necesite.
+```{r message=FALSE}
+
+#limpio el espacio de trabajo
+rm(list=ls())
+#compruebo que estoy en el espacio de trabajo que deseo, si quisiera cambiarlo utilizaria la funcion setwd("ruta/deseada")
+getwd()
+
+#creo el directorio datos sino existe
+if(!file.exists("./datos")) { 
+   dir.create("datos")
+}
+
+#guardo la url en una variable
+fileUrl <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00320/student.zip"
+
+#descargo el archivo .zip
+download.file(fileUrl, destfile = "./datos/student.zip")
+
+#descomprimo el archivo en el directorio que lo he descargado
+unzip("./datos/student.zip", exdir = "./datos")
+
+#elimino la variable fileUrl
+rm(fileUrl)
+
+
+#creo una variable con una marca de tiempo para saber que dia descarge el fichero, necesito la libreria lubridate, me ha tocado utilizar la ayuda para ver como se ejecutaba la funcion date
+??date
+library(lubridate)
+fechaDescargaStudentZip <- date(Sys.time())
+
+#muestro el directorio datos para ver que archivos contiene
+list.files("./datos")
+
+#genero los dataframe de los archivos csv, tenemos dos un de estudiantes de matematicas y otro de estudantes de portugues, utilizo la funcion read.table() para los dos
+studentMat <- read.table("./datos/student-mat.csv", row.names = NULL, sep = ";", header = TRUE)
+studentPor <- read.table("./datos/student-por.csv", row.names = NULL, sep = ";", header = TRUE)
+
+#junto los dataset para crear uno con los estudiantes que estudian matematicas y portugues
+student <- merge(studentMat, studentPor, by=c("school", "sex", "age", "address", "famsize", "Pstatus", "Medu", "Fedu", "Mjob", "Fjob", "reason", "nursery", "internet"))
+
+#acortamos el data frame para utulizar solo las variables que consideramos importantes respecto a valores familiares
+columnas <- c( "school", "sex", "address", "Medu", "Fedu", "Mjob", "Fjob", "guardian.x", "guardian.y", "famsup.x", "famsup.y", "famrel.x", "famrel.x", "internet")
+studentFam <- student[ , columnas ]
+
+#generamos dos columna nuevas con los aprobados de matematicas y portugues
+studentFam$aprobado.x <- ifelse(student$G3.x>9,1,0)
+studentFam$aprobado.y <- ifelse(student$G3.y>9,1,0)
+
+#genramos dos columnas mas con las notas de los estudiantes, ("suspenso=1", "suficiente=2", "satisfactorio=3", "bueno=4", "excelente=5")
+library(Hmisc)
+studentFam$notas.x <- cut2(student$G3.x, c(21,15,13,11,9))
+levels(studentFam$notas.x) <- c("suspenso=1", "suficiente=2", "satisfactorio=3", "bueno=4", "excelente=5")
+studentFam$notas.x <- as.numeric(studentFam$notas.x)
+studentFam$notas.y <- cut2(student$G3.y, c(21,15,13,11,9))
+levels(studentFam$notas.y) <- c("suspenso=1", "suficiente=2", "satisfactorio=3", "bueno=4", "excelente=5")
+studentFam$notas.y <- as.numeric(studentFam$notas.y)
+```
+
+
+##Análisis descriptivo
+Ahora vamos a ver la los datos, vamos a ver de que tipo son las variables de nuestro dataset
+```{r message=FALSE}
+#visualizamos los datos de los dataframe con la funcion kable que esta en la libreria "knitr", solo muestro las 15 primeras filas para ver como son los datos
+library(knitr)
+
+df <- head(studentFam, 15)
+kable(df, caption = "Estudiantes de matematicas y portugues")
+
+
+#muestro detalles de los datos con str(), summary(), lapply() (sin usar)
+str(studentFam)
+summary(studentFam)
+#lapply(studentFam, class)
+
+
+#Podemos ver los valores de las variables que sean de tipo Factor
+levels(studentFam$guardian.x)
+#otra manera de hacerlo seria directamente con attach y cada una de las variables que queramos ver
+attach(studentFam)
+levels(guardian.x)
+detach(studentFam)
+
+
+#podriamos ver el summary() por sexo
+studentFam.F <- studentFam[ which( studentFam$sex == "F" ),  ]
+studentFam.M <- studentFam[ which( studentFam$sex == "M" ),  ]
+#summary(studentFam.F)
+#summary(studentFam.M)
+
+```
+
+
+##Análisis Exploratorio
+Ahora vamos a intentar relacionar las variables para ver si alguna influye sobre la nota final, solo estoy usando la variable x(matematicas para las pruebas)
+```{r message=FALSE}
+
+#vemos mas detalles de los datos que nos interesan, podemos ver como se relacionan 2 variables
+library(gmodels)
+attach(studentFam)
+CrossTable(notas.x, internet, prop.r = F, prop.t = F, prop.c = F, prop.chisq = F)
+detach(studentFam)
+
+#Miramos la nota media relacionada con los estudiantes que tienen internet en casa
+divideInternet <- split(studentFam, studentFam$internet)
+sapply(divideInternet, function(x) mean(x$notas.x))
+
+#generamos una grafica relacionando el tutor con las notas
+library(ggplot2)
+g1 <- ggplot(studentFam, aes(guardian.x, notas.x))
+g1 + geom_point() + facet_grid(. ~ Medu)
+g1 + geom_point() 
+g1 + geom_boxplot()
+
+ggplot(studentFam, aes(x = famsup.x)) + geom_bar() +
+facet_grid(aprobado.x ~ .) +
+ggtitle ("Relación gráfica entre aprobar o no matemáticas y el apoyo familiar") +
+theme(plot.title=element_text(vjust = +1.5, size = 10))
+
+#modifico el dataframe para poder ver correlaciones entre los datos
+
+studentFamCorrelation <- studentFam
+studentFamCorrelation$school <- as.numeric(studentFamCorrelation$school)
+studentFamCorrelation$sex <- as.numeric(studentFamCorrelation$sex)
+studentFamCorrelation$address <- as.numeric(studentFamCorrelation$address)
+studentFamCorrelation$Mjob <- as.numeric(studentFamCorrelation$Mjob)
+studentFamCorrelation$Fjob <- as.numeric(studentFamCorrelation$Fjob)
+studentFamCorrelation$guardian.x <- as.numeric(studentFamCorrelation$guardian.x)
+studentFamCorrelation$guardian.y <- as.numeric(studentFamCorrelation$guardian.y)
+studentFamCorrelation$famsup.x <- as.numeric(studentFamCorrelation$famsup.x)
+studentFamCorrelation$famsup.y <- as.numeric(studentFamCorrelation$famsup.y)
+studentFamCorrelation$internet <- as.numeric(studentFamCorrelation$internet)
+
+corStudentFamCorrelation <- cor(studentFamCorrelation)
+
+
+require(corrplot)
+corrplot(corStudentFamCorrelation)
+corrplot(corStudentFamCorrelation, method="shade", shade.col=NA, tl.srt=45,
+         addCoef.col="black", order="AOE", type='lower')
+```
+
+
+##Conclusion
+Despues de ver las graficas de correlacion parace que no hay muchar realacion entre las variables de la familia y la nota final, de todas formas es muy posible que alguien que se dedique a la estadistica pueda interpretar mucho  mejor que yo estos datos.
+```{r message=FALSE}
+
